@@ -276,15 +276,25 @@ def combine_channels_core(channels, dist):
 def combine_channels(lst, max_dist):
     counts = dict()
     replacements = dict()
+    rep_msgs = dict()
 
     for el in lst:
         counts[el] = counts.get(el, 0) + 1
     _, replacements = combine_channels_core(counts, max_dist) 
 
+    print("Replacements dictionary:\n") #, replacements)
+    for key, val in replacements.items():
+        pass
+    #    print(key, " : ", val)
+
     for i, el in enumerate(lst):
         for key, val in replacements.items():
             if(el in val):
                 lst[i] = key
+                rep_msgs["Replacing {} with {}.".format(el, key)] = 0
+    for key in sorted(rep_msgs):
+        pass
+    #    print(key)
     return lst
     
 def construct_sprite_table(sprite_table_lines, num_digits, num_bits, lst, width):
@@ -338,6 +348,7 @@ def split_to_palette(lst, color):
         for idx, item in enumerate(lst):
             if item == key:
                 lst[idx] = i # str(i)
+                print("item {} is pallette indexed by index {}".format(item, i))
         # Fill the palette dictionary (unused)
         palette[key] = i
         # Fill the list of colors
@@ -407,7 +418,7 @@ def conditional_line(table_index, table, NC, NR, color):
     line = "\nif(SpriteX >= 10'd{} && SpriteX < 10'd{} && SpriteY >= 10'd{} && SpriteY < 10'd{})".format(MinX, MaxX, MinY, MaxY)
     line += "\nbegin\n"
     line += " "*4
-    line += sprite_table_name(color) + " = " + sprite_subtable_name(color, i, j) + "[Y_Index][X_Index];\n"
+    line += sprite_table_name(color) + " = " + sprite_subtable_name(color, i, j) + "[X_Index][Y_Index];\n"
     line += "end\nelse"
     return line
 def split_sprite_table(lst, color, NC, NR):
@@ -438,16 +449,19 @@ def split_sprite_table(lst, color, NC, NR):
     # Replace elements of list with their corresponding lookup values, populate palette list
     i = 0
     colors = []
+    aa = {}
     for key in counts:
         for idx, item in enumerate(lst):
             if item == key:
                 lst[idx] = i # str(i)
+                aa[item] = i 
+                 # print("item {} is pallette indexed by index {}".format(item, i))
         # Fill the palette dictionary (unused)
         palette[key] = i
         # Fill the list of colors
         colors.append("8'd" + str(key))
         i += 1
-    
+    print(aa)
     # Create entries in sprite table dictionary, loop over tables
     # If the image is divided evenly by the chunk width, loop exactly that number of times.
     # Otherwise loop once more to grab partial chunks.

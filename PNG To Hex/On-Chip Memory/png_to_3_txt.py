@@ -1,7 +1,6 @@
+from progress.bar import Bar
 from PIL import Image
-from collections import Counter
-from scipy.spatial import KDTree
-import numpy as np
+
 def hex_to_rgb(num):
     h = str(num)
     return int(h[0:4], 16), int(('0x' + h[4:6]), 16), int(('0x' + h[6:8]), 16)
@@ -20,10 +19,12 @@ outFileG = open("./sprite_bytes/" + filename + 'G.txt', 'w')
 outImgB = Image.new('RGB', im.size, color='white')
 outFileB = open("./sprite_bytes/" + filename + 'B.txt', 'w')
 
+bb = Bar('Processing...', max=im.size[1])
+
 for y in range(im.size[1]):
     for x in range(im.size[0]):
         pixel = im.getpixel((x,y))
-        print(pixel)
+        # print(pixel)
         r, g, b, a = im.getpixel((x,y))
         pixelR  = (r, 0, 0, 255)
         pixelG = (0, g, 0, 255)
@@ -34,6 +35,8 @@ for y in range(im.size[1]):
         outFileR.write("%x\n" %(r))
         outFileG.write("%x\n" %(g))
         outFileB.write("%x\n" %(b))
+    bb.next()
+bb.finish()
 outFileR.close()
 outFileB.close()
 outFileG.close()
