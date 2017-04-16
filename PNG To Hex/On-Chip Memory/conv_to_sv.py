@@ -49,6 +49,7 @@ bytes_dir = parent_dir + "sprite_bytes/"
 sv_dir = bytes_dir
 orig_dir = parent_dir + "sprite_originals/"
 spritename = "GalagaLogo"
+ram_dir = bytes_dir
 outfile = sv_dir + spritename + ".sv"
 chunk_images = False
 
@@ -73,7 +74,7 @@ def usage():
     lines.append("    In the color mapper, you can then simply do something like:")
     lines.append("    module ColorMapper(...)")
     lines.append("    ...")
-    lines.append("    logic [7:0] ObjectR, ObjectG, ObjectB")
+    lines.append("    logic [7:0] ObjectR, ObjectG, ObjectB;")
     lines.append("    parameter ObjectXSize = 10'd10;")
     lines.append("    parameter ObjectYSize = 10'd10;")
     lines.append("    ...")
@@ -81,9 +82,9 @@ def usage():
     lines.append("    ...")
     lines.append("         if(ObjectOn == 1'b1)")
     lines.append("         begin")
-    lines.append("             Red = ObjectR")
-    lines.append("             Green = ObjectG")
-    lines.append("             Blue = ObjectB")
+    lines.append("             Red = ObjectR;")
+    lines.append("             Green = ObjectG;")
+    lines.append("             Blue = ObjectB;")
     lines.append("         end")
     lines.append("     ...")
     lines.append("     ObjectSpriteTable ost(")
@@ -316,7 +317,7 @@ def split_to_palette(lst, color):
     counts = dict() # key is the actual color, value is the count of them
     palette = dict() # key is the hex string, value is the lookup index
     
-    footer += "assign Sprite" + color + " = SpritePalette" + color + "[SpriteTable" + color + "[SpriteY][SpriteX]];\n"
+    footer += "assign Sprite" + color + " = 8'd255 - SpritePalette" + color + "[SpriteTable" + color + "[SpriteY][SpriteX]];\n"
     
     for el in lst:
         # el = int(el.strip('\n'), 16)
@@ -398,7 +399,7 @@ def conditional_line(table_index, table, NC, NR, color):
     line = "\nif(SpriteX >= 10'd{} && SpriteX < 10'd{} && SpriteY >= 10'd{} && SpriteY < 10'd{})".format(MinX, MaxX, MinY, MaxY)
     line += "\nbegin\n"
     line += " "*4
-    line += sprite_table_name(color) + " = " + sprite_subtable_name(color, i, j) + "[Y_Index][X_Index];\n"
+    line += sprite_table_name(color) + " = " + sprite_subtable_name(color, i, j) + "[X_Index][Y_Index];\n"
     line += "end\nelse"
     return line
 def split_sprite_table(lst, color, NC, NR):
@@ -411,7 +412,7 @@ def split_sprite_table(lst, color, NC, NR):
     palette = dict() # key is the hex string, value is the lookup index
     chunk_sizes = dict()
 
-    footer += "assign Sprite" + color + " = SpritePalette" + color + "[" + sprite_table_name(color) + "];\n"
+    footer += "assign Sprite" + color + " = 8'd255 - SpritePalette" + color + "[" + sprite_table_name(color) + "];\n"
     
     for el in lst:
         # el = int(el.strip('\n'), 16)
@@ -538,7 +539,7 @@ def create_sprite_table_channel(color):
     fname = bytes_dir + spritename + color + ".txt"
     with open(fname) as f:
         content = f.readlines()
-    footer += "assign Sprite" + color + " = SpriteTable" + color + "[SpriteY][SpriteX];\n"
+    footer += "assign Sprite" + color + " = 8'd255 - SpriteTable" + color + "[SpriteY][SpriteX];\n"
 
     sprite_table_lines = "parameter bit [7:0] SpriteTable" + color + "[" + str(ywidth - 1) + ":0][" + str(xwidth - 1) + ":0] = '{"
     # note that in order to index into it normally, you need to put y first? I think. This has worked for us so far.
@@ -609,11 +610,6 @@ def create_image():
     # after palette generation
     global xwidth, ywidth, spritename, bytes_dir, orig_dir, image_extension, compression_level, image_viewer
     
-    ans = input("Would you like to see a comparison of the image before and after compressing it with a palette? (y/N) ").lower()
-    if(ans != 'y'):
-        return
-    show_section_msg("Displaying original and paletted images...")
-    print("If nothing shows, try changing the image viewer command name at the top of this script.")
     im1 = Image.open(orig_dir + spritename + image_extension)
     im1.show(command=image_viewer)
     channels = []
@@ -627,13 +623,24 @@ def create_image():
         channels.append(combine_channels(lines, compression_level))
     #print(channels)
     imdata = list(zip(*channels))
+
     #print(imdata)
     im2 = Image.new("RGB", (xwidth, ywidth))
-    im2.putdata(imdata)
-    im2.show(command=image_viewer)
+    try:
+        im2.putdata(imdata)
+    except TypeError:
+        print("Looks like your image has changed size since you last ran png_to_3_txt. Run it again on your current image.")
+        quit()
+    
     im2path = orig_dir + spritename + "_filt" + image_extension
     print("Processed image has been saved under: ", im2path)
     im2.save(im2path)
+    ans = input("Would you like to see a comparison of the image before and after compressing it with a palette? (y/N) ").lower()
+    if(ans != 'y'):
+        return
+    show_section_msg("Displaying original and paletted images...")
+    print("If nothing shows, try changing the image viewer command name at the top of this script.")
+    im2.show(command=image_viewer)
     # input("Press any key to continue.")
 
 def startup():
